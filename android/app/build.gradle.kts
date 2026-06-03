@@ -14,11 +14,14 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true // <-- Ye on hi rahega
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // Wapas purane safe format par shift kiya jo aapke Gradle version ke sath compatible hai:
     kotlinOptions {
+        @Suppress("DEPRECATION")
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
@@ -27,10 +30,12 @@ android {
         applicationId = "com.example.eventeasee"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion 
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        multiDexEnabled = true 
     }
 
     buildTypes {
@@ -44,4 +49,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }

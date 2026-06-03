@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:eventeasee/services/notification_service.dart'; 
 
 class PlaceBidScreen extends StatefulWidget {
   final String eventId;
   final String eventTitle;
-  final String? bidId;             // For editing existing bid
-  final String? existingAmount;    // For auto-filling input on edit
-  final String? existingMessage;   // For auto-filling input on edit
+  final String? bidId;             
+  final String? existingAmount;    
+  final String? existingMessage;   
 
   const PlaceBidScreen({
     super.key, 
@@ -29,7 +30,6 @@ class _PlaceBidScreenState extends State<PlaceBidScreen> {
   @override
   void initState() {
     super.initState();
-    // Agar provider edit mode mein aaya hai, toh pichla data autofill ho jaye
     if (widget.bidId != null) {
       _amountController.text = widget.existingAmount ?? '';
       _messageController.text = widget.existingMessage ?? '';
@@ -40,34 +40,79 @@ class _PlaceBidScreenState extends State<PlaceBidScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _amountController.text.trim().isEmpty) return;
 
-    // --- SMART BACKEND ROUTING ---
-    // Agar bidId pehle se maujood hai toh usi document ko overwrite/update karenge, warna naya add hoga
-    DocumentReference bidRef;
-    if (widget.bidId != null) {
-      bidRef = FirebaseFirestore.instance.collection('bids').doc(widget.bidId);
-    } else {
-      bidRef = FirebaseFirestore.instance.collection('bids').doc(); // Auto-generate ID
-    }
+    // Show inline circular loading overlay bounds
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
 
-    Map<String, dynamic> bidData = {
-      'eventId': widget.eventId,
-      'providerId': user.uid,
-      'amount': double.tryParse(_amountController.text.trim()) ?? 0.0,
-      'message': _messageController.text.trim(),
-      'status': 'pending',
-      'createdAt': DateTime.now(),
-    };
+    try {
+      DocumentReference bidRef;
+      if (widget.bidId != null) {
+        bidRef = FirebaseFirestore.instance.collection('bids').doc(widget.bidId);
+      } else {
+        bidRef = FirebaseFirestore.instance.collection('bids').doc(); 
+      }
 
-    // Use .set with merge: true to avoid creating duplicate rows in Customer dashboard
-    await bidRef.set(bidData, SetOptions(merge: true));
+      Map<String, dynamic> bidData = {
+        'eventId': widget.eventId,
+        'providerId': user.uid,
+        'amount': double.tryParse(_amountController.text.trim()) ?? 0.0,
+        'message': _messageController.text.trim(),
+        'status': 'pending',
+        'createdAt': DateTime.now(),
+      };
 
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(widget.bidId != null ? "Bid Updated Successfully!" : "Bid Placed Successfully!"),
-        ),
-      );
+      await bidRef.set(bidData, SetOptions(merge: true));
+
+      // 📢 Fetch target parent event document parameters safely to capture target customerId
+      var eventSnapshot = await FirebaseFirestore.instance.collection('events').doc(widget.eventId).get();
+      String? customerId = eventSnapshot.data()?['customerId'];
+
+      if (customerId != null) {
+        // Pushes the live notification tracking doc straight into target user profile space
+        await FirebaseFirestore.instance.collection('notifications').add({
+          'targetUserId': customerId,
+          'title': widget.bidId != null ? "Offer Updated! 📝" : "New Offer Received ⚡",
+          'body': widget.bidId != null 
+              ? "A vendor updated their quotation to Rs. ${_amountController.text.trim()} for your requirement."
+              : "A verified service provider has submitted a new quotation for '${widget.eventTitle}'.",
+          'createdAt': FieldValue.serverTimestamp(),
+          'isRead': false,
+        });
+      }
+
+      // --- LOCAL BACKUP ALERTS AS TRACE RETAINED FOR DEVICE LOGS ---
+      try {
+        if (widget.bidId != null) {
+          await NotificationService.triggerInstantAlert(
+            id: 2, 
+            title: "Bid Proposal Updated! 📝",
+            body: "Your modified offer of Rs. ${_amountController.text.trim()} for '${widget.eventTitle}' has been updated.",
+          );
+        } else {
+          await NotificationService.triggerInstantAlert(
+            id: 3, 
+            title: "Bid Proposal Dispatched! 🚀",
+            body: "Your offer of Rs. ${_amountController.text.trim()} has been securely sent to the customer.",
+          );
+        }
+      } catch (_) {}
+
+      if (mounted) {
+        Navigator.pop(context); // Close charging circular loading overlay indicators
+        Navigator.pop(context); // Go secure backward routing to market index view
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.bidId != null ? "Bid Updated Successfully!" : "Bid Placed Successfully!"),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error routing submission: $e")));
     }
   }
 
@@ -82,7 +127,7 @@ class _PlaceBidScreenState extends State<PlaceBidScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.bidId != null ? "Edit Bid for ${widget.eventTitle}" : "Bid for ${widget.eventTitle}"),
+        title: Text(widget.bidId != null ? "Edit Bid" : "Submit Proposal"),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

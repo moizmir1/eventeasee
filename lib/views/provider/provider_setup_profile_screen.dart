@@ -25,13 +25,16 @@ class _ProviderSetupProfileScreenState extends State<ProviderSetupProfileScreen>
     'Makeup Artist'
   ];
   
-  String? _selectedCategory;
+  // --- MULTI-SELECT LIST ---
+  final List<String> _selectedCategories = [];
   bool _isLoading = false;
 
   void _saveProfile() async {
-    if (!_formKey.currentState!.validate() || _selectedCategory == null) {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (_selectedCategories.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select your service category")),
+        const SnackBar(content: Text("Please select at least one service category")),
       );
       return;
     }
@@ -42,14 +45,14 @@ class _ProviderSetupProfileScreenState extends State<ProviderSetupProfileScreen>
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      // Saving provider professional details to Firestore 'users' collection
+      // Saving provider professional details with categories Array
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'name': _nameController.text.trim(),
         'bio': _bioController.text.trim(),
-        'category': _selectedCategory,
-        'role': 'provider',          // Enforcing role stability
-        'rating': 5.0,               // Default starting rating for new professional
-        'isProfileComplete': true,   // Flag to control main routing dashboard
+        'categories': _selectedCategories, // Saved as an Array/List in Firestore
+        'role': 'provider',          
+        'rating': 5.0,               
+        'isProfileComplete': true,   
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -87,12 +90,11 @@ class _ProviderSetupProfileScreenState extends State<ProviderSetupProfileScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Complete your business profile to start receiving event leads and placing bids.",
+                      "Complete your business profile. You can select multiple services that your business offers.",
                       style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     const SizedBox(height: 25),
                     
-                    // Input 1: Business / Professional Name
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(
@@ -102,32 +104,46 @@ class _ProviderSetupProfileScreenState extends State<ProviderSetupProfileScreen>
                       ),
                       validator: (value) => value == null || value.trim().isEmpty ? "Name is required" : null,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 25),
                     
-                    // Input 2: Services / Category Dropdown Filter Selector
-                    DropdownButtonFormField<String>(
-                      value: _selectedCategory,
-                      decoration: const InputDecoration(
-                        labelText: "Select Your Main Service",
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.design_services),
-                      ),
-                      items: _categories.map((String category) {
-                        return DropdownMenuItem<String>(
-                          value: category,
-                          child: Text(category),
+                    // --- MULTI-SELECT CHIPS VIEW ---
+                    const Text(
+                      "Select Your Services (Multiple Allowed):",
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8.0,
+                      runSpacing: 8.0,
+                      children: _categories.map((category) {
+                        final isSelected = _selectedCategories.contains(category);
+                        return FilterChip(
+                          label: Text(category),
+                          selected: isSelected,
+                          selectedColor: const Color(0xFF6366F1).withOpacity(0.2),
+                          checkmarkColor: const Color(0xFF6366F1),
+                          labelStyle: TextStyle(
+                            color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF475569),
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(color: isSelected ? const Color(0xFF6366F1) : const Color(0xFFE2E8F0)),
+                          ),
+                          onSelected: (bool selected) {
+                            setState(() {
+                              if (selected) {
+                                _selectedCategories.add(category);
+                              } else {
+                                _selectedCategories.remove(category);
+                              }
+                            });
+                          },
                         );
                       }).toList(),
-                      onChanged: (newValue) {
-                        setState(() {
-                          _selectedCategory = newValue;
-                        });
-                      },
-                      validator: (value) => value == null ? "Please select a service category" : null,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 25),
                     
-                    // Input 3: Professional Bio / Previous Work Experience Summary
                     TextFormField(
                       controller: _bioController,
                       maxLines: 4,
@@ -141,14 +157,13 @@ class _ProviderSetupProfileScreenState extends State<ProviderSetupProfileScreen>
                     ),
                     const SizedBox(height: 30),
                     
-                    // Action Submit Button
                     ElevatedButton(
                       onPressed: _saveProfile,
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(55),
-                        backgroundColor: Colors.blueAccent,
+                        backgroundColor: const Color(0xFF6366F1),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       child: const Text("Save & Open Dashboard", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     )

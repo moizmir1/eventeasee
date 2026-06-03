@@ -19,6 +19,7 @@ class AuthService {
           'email': email,
           'role': role,
           'createdAt': DateTime.now(),
+          'isBlocked': false, // 🚀 ADDED INITIAL ACCOUNT CONTROL STATE PARAMETER
         });
       }
       return user;
@@ -28,15 +29,41 @@ class AuthService {
     }
   }
 
-  // Login Function
+  // 🚀 AUTOMATED DEEP AUDIT LOGIN ENGINE (STOPS BANNED USERS ON THE SPOT)
   Future<User?> login(String email, String password) async {
     try {
+      // 1. Authenticate user credentials via Firebase Auth module
       UserCredential result = await _auth.signInWithEmailAndPassword(
           email: email, password: password);
-      return result.user;
+      
+      User? user = result.user;
+
+      if (user != null) {
+        // 2. Fetch corresponding documentation row from firestore index instantly
+        DocumentSnapshot userDoc = await _db.collection('users').doc(user.uid).get();
+
+        if (userDoc.exists && userDoc.data() != null) {
+          var userData = userDoc.data() as Map<String, dynamic>;
+          
+          // 3. Check if account is suspended for communication or spam abuses
+          if (userData['isBlocked'] == true) {
+            // Force terminate active network token session boundaries safely
+            await _auth.signOut();
+            
+            // Throw custom security message parsed straight into UI views try-catches
+            throw FirebaseAuthException(
+              code: 'user-disabled',
+              message: "Your account has been permanently suspended for breaching platform rules.",
+            );
+          }
+        }
+      }
+      
+      return user;
     } catch (e) {
-      print(e.toString());
-      return null;
+      print("Authentication Pipeline Exception: ${e.toString()}");
+      // Rethrow to handle specific block alerts smoothly inside UI Snackbars too
+      rethrow;
     }
   }
 
