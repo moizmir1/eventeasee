@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
-import 'dart:convert'; // 🚀 FOR PARSING BASE64 MEMORY SEGMENTS IN DESKTOPS
+import 'dart:convert';
 import 'package:flutter/foundation.dart' show Uint8List;
 
 class AdminHome extends StatefulWidget {
@@ -187,7 +187,6 @@ class _AdminHomeState extends State<AdminHome> {
 
               var allUsers = snapshot.data!.docs;
               
-              // 🛠️ SPLIT DATA DYNAMICALLY BASED ON CURRENT ACTIVE ROLE CHIP
               var filteredUsers = allUsers.where((u) {
                 var role = ((u.data() as Map<String, dynamic>)['role'] ?? 'customer').toString().toLowerCase();
                 return role == _activeUserRoleFilter;
@@ -195,7 +194,6 @@ class _AdminHomeState extends State<AdminHome> {
 
               return Column(
                 children: [
-                  // 🚀 PREMIUM HORIZONTAL SUB-DIVISION CHIP SELECTOR BAR
                   Container(
                     width: double.infinity,
                     color: Colors.white,
@@ -209,7 +207,6 @@ class _AdminHomeState extends State<AdminHome> {
                     ),
                   ),
                   
-                  // LIVE FILTERED USER LIST GRID
                   Expanded(
                     child: filteredUsers.isEmpty
                         ? Center(child: Text("No indexed ${_activeUserRoleFilter}s tracked in system registry.", style: const TextStyle(color: Colors.grey)))
@@ -222,6 +219,7 @@ class _AdminHomeState extends State<AdminHome> {
                               var userData = doc.data() as Map<String, dynamic>;
                               String uid = doc.id;
                               String name = userData['name'] ?? 'Anonymous User';
+                              String email = userData['email'] ?? 'No email provided'; // 🚀 EMAIL EXTRACTED
                               String role = userData['role'] ?? 'Customer';
                               bool isBlocked = userData['isBlocked'] ?? false;
                               String banReason = userData['banReason'] ?? '';
@@ -251,18 +249,18 @@ class _AdminHomeState extends State<AdminHome> {
                                       ]
                                     ],
                                   ),
+                                  // 🚀 UPDATED SUBTITLE TO SHOW EMAIL AND ROLE
                                   subtitle: Padding(
                                     padding: const EdgeInsets.only(top: 4.0),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text("Role: ${role.toUpperCase()}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                        Text(email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                        const SizedBox(height: 2),
+                                        Text("Role: ${role.toUpperCase()}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF6366F1))),
                                         if (isBlocked && banReason.isNotEmpty) ...[
                                           const SizedBox(height: 4),
-                                          Text(
-                                            "Reason: $banReason", 
-                                            style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.w500, height: 1.2)
-                                          ),
+                                          Text("Reason: $banReason", style: const TextStyle(fontSize: 10, color: Colors.red, fontStyle: FontStyle.italic)),
                                         ]
                                       ],
                                     ),
@@ -271,10 +269,7 @@ class _AdminHomeState extends State<AdminHome> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
-                                        icon: Icon(
-                                          isBlocked ? Icons.block_flipped : Icons.verified_user_rounded,
-                                          color: isBlocked ? Colors.red : Colors.green,
-                                        ),
+                                        icon: Icon(isBlocked ? Icons.block_flipped : Icons.verified_user_rounded, color: isBlocked ? Colors.red : Colors.green),
                                         tooltip: isBlocked ? "Unblock Account" : "Block Account",
                                         onPressed: () => _toggleUserBlock(uid, isBlocked),
                                       ),

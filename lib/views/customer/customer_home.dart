@@ -3,13 +3,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'post_event_screen.dart';
 import 'view_bids_screen.dart'; 
-import '../ticketing/create_ticketed_event.dart';
-import '../ticketing/scanner_view.dart';
-import '../ticketing/event_details_screen.dart';
-import '../ticketing/guest_list_screen.dart'; 
+
+// 🚀 FIXED SYSTEM IMPORTS: Exactly synchronized with your active files tree
+import 'package:eventeasee/views/ticketing/create_ticketed_event.dart'; 
+import 'package:eventeasee/views/ticketing/scanner_view.dart';
+import 'package:eventeasee/views/ticketing/event_details_screen.dart';
+import 'package:eventeasee/views/ticketing/guest_list_screen.dart'; 
+import 'package:eventeasee/views/ticketing/ticket_receipt_screen.dart'; // 🚀 ADDED: Connecting receipt preview for dashboard links
+
 import '../../services/auth_service.dart';
 import 'package:eventeasee/views/profile/profile_screen.dart'; 
-import 'package:eventeasee/services/notification_service.dart'; 
+import 'package:eventeasee/services/notification_service.dart';
 
 class CustomerHome extends StatefulWidget {
   const CustomerHome({super.key});
@@ -104,6 +108,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                 if (query.docs.isNotEmpty) {
                   var doc = query.docs.first;
                   Navigator.pop(context); 
+                  
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -127,7 +132,6 @@ class _CustomerHomeState extends State<CustomerHome> {
     );
   }
 
-  // 🚀 AUTOMATED RATINGS DIALOG BOX (STARS + DESCRIPTION REMARKS INPUT)
   void _showProviderReviewDialog(BuildContext context, String eventId, String providerId) {
     double selectedRatingStars = 5.0;
     final TextEditingController reviewCommentController = TextEditingController();
@@ -151,7 +155,6 @@ class _CustomerHomeState extends State<CustomerHome> {
                 const Text("Provide performance scores and evaluation notes below to complete order history parameters.", style: TextStyle(fontSize: 11, color: Colors.grey)),
                 const SizedBox(height: 20),
                 
-                // ⭐ STARS SELECTOR HUB
                 Center(
                   child: Column(
                     children: [
@@ -179,7 +182,6 @@ class _CustomerHomeState extends State<CustomerHome> {
                 const Text("Write a Description Note", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF334155))),
                 const SizedBox(height: 8),
                 
-                // 📝 DESCRIPTION COMMENT TEXTFIELD
                 TextFormField(
                   controller: reviewCommentController,
                   maxLines: 3,
@@ -236,7 +238,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                           if (dialogContext.mounted) Navigator.pop(dialogContext);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Review and description notes compiled safely inside engine!"), backgroundColor: Color(0xFF10B981))
+                              const SnackBar(content: Text("Review saved inside engine!"), backgroundColor: Color(0xFF10B981))
                             );
                           }
                         } catch (e) {
@@ -274,7 +276,7 @@ class _CustomerHomeState extends State<CustomerHome> {
             PopupMenuButton<String>(
               initialValue: _customerSortBy,
               icon: const Icon(Icons.filter_list_rounded, color: Color(0xFF6366F1), size: 26),
-              tooltip: "Sort My Requirements",
+              tooltip: "Sort Requirements",
               onSelected: (String criteria) => setState(() => _customerSortBy = criteria),
               itemBuilder: (BuildContext context) => [
                 const PopupMenuItem(value: 'newest', child: Row(children: [Icon(Icons.access_time_rounded, size: 18), SizedBox(width: 8), Text("Newest First")])),
@@ -337,7 +339,6 @@ class _CustomerHomeState extends State<CustomerHome> {
         ),
         body: TabBarView(
           children: [
-            // ================= TAB 1: HIRE SERVICES PANEL =================
             Column(
               children: [
                 Padding(
@@ -362,9 +363,9 @@ class _CustomerHomeState extends State<CustomerHome> {
                         .where('customerId', isEqualTo: currentUser?.uid)
                         .snapshots(),
                     builder: (context, snapshot) {
-                      if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+                      if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
                       if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                      if (snapshot.data!.docs.isEmpty) return const Center(child: Text("No service posts yet. Start hiring vendors!", style: TextStyle(color: Colors.grey)));
+                      if (snapshot.data!.docs.isEmpty) return const Center(child: Text("No custom service requirements posted yet.", style: TextStyle(color: Colors.grey, fontSize: 13)));
 
                       var myEvents = snapshot.data!.docs;
 
@@ -459,7 +460,6 @@ class _CustomerHomeState extends State<CustomerHome> {
                                   ),
                                 ),
 
-                                // 🚀 SLEEK & COMPACT REVIEWS RENDER INTERFACE INSIDE SYMMETRIC SCOPES
                                 if (isCompleted) ...[
                                   Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -517,7 +517,6 @@ class _CustomerHomeState extends State<CustomerHome> {
               ],
             ),
 
-            // ================= TAB 2: TICKETING HUB =================
             SingleChildScrollView(
               child: Container(
                 padding: const EdgeInsets.all(20),
@@ -549,6 +548,81 @@ class _CustomerHomeState extends State<CustomerHome> {
                       icon: Icons.qr_code_scanner,
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ScannerView())),
                     ),
+                    
+                    // ================= 🚀 NEW FEATURE: MY PURCHASED PASSES LEDGER HUB =================
+                    const SizedBox(height: 25),
+                    const Text("My Purchased Passes", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                    const SizedBox(height: 10),
+                    
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('tickets')
+                          .where('buyerId', isEqualTo: currentUser?.uid)
+                          .snapshots(),
+                      builder: (context, ticketSnapshot) {
+                        if (ticketSnapshot.hasError) return const SizedBox();
+                        if (!ticketSnapshot.hasData) return const Center(child: CircularProgressIndicator());
+                        if (ticketSnapshot.data!.docs.isEmpty) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20), 
+                              child: Text("Aap ne abhi tak koi pass buy nahi kiya.", style: TextStyle(fontSize: 12, color: Colors.grey))
+                            )
+                          );
+                        }
+                        
+                        return Column(
+                          children: ticketSnapshot.data!.docs.map((ticketDoc) {
+                            var tData = ticketDoc.data() as Map<String, dynamic>;
+                            String status = tData['status'] ?? 'pending';
+                            
+                            // Dynamic layout indicators for status matrices
+                            Color badgeColor = const Color(0xFFFEF3C7);
+                            Color txtColor = const Color(0xFFB45309);
+                            if (status == 'verified') {
+                              badgeColor = const Color(0xFFDCFCE7);
+                              txtColor = const Color(0xFF166534);
+                            } else if (status == 'declined') {
+                              badgeColor = const Color(0xFFFEE2E2);
+                              txtColor = const Color(0xFF991B1B);
+                            }
+
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFFE2E8F0))),
+                              child: ListTile(
+                                leading: const CircleAvatar(backgroundColor: Color(0xFFF1F5F9), child: Icon(Icons.confirmation_number_outlined, color: Color(0xFF6366F1), size: 20)),
+                                title: Text("Ticket ID: ${tData['ticketId'] ?? 'N/A'}", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                                subtitle: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(6)),
+                                      child: Text(status.toUpperCase(), style: TextStyle(fontSize: 10, color: txtColor, fontWeight: FontWeight.bold)),
+                                    )
+                                  ],
+                                ),
+                                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                                onTap: () {
+                                  // 🚀 DYNAMIC ROUTE REDIRECTION STRAIGHT TO THE TICKET RECEIPT
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => TicketReceiptScreen(
+                                        eventData: {'shortId': 'EV-REC'},  // Structural placeholder logic layout
+                                        ticketData: tData,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+
                     const SizedBox(height: 25),
                     const Text("My Ticketed Events", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
                     const SizedBox(height: 10),
@@ -561,6 +635,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                       builder: (context, snapshot) {
                         if (snapshot.hasError) return const SizedBox();
                         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                        if (snapshot.data!.docs.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No live ticketing hubs active.", style: TextStyle(fontSize: 12, color: Colors.grey))));
                         
                         return Column(
                           children: snapshot.data!.docs.map((doc) {
@@ -579,7 +654,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(6)),
-                                      child: const Text("Live Ledger Active", style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
+                                      child: const Text("Live Ledger", style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
                                     )
                                   ],
                                 ),
@@ -589,7 +664,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                                     IconButton(
                                       icon: const Icon(Icons.people_outline, color: Colors.blueGrey),
                                       onPressed: () => Navigator.push(context, MaterialPageRoute(
-                                        builder: (context) => GuestListScreen(eventId: doc.id, eventName: data['eventName'])
+                                        builder: (context) => GuestListScreen(eventId: doc.id)
                                       )),
                                     ),
                                     IconButton(

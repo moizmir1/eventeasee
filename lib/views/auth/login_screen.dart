@@ -25,37 +25,29 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    // Show professional loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
+    // 🚀 REMOVED showDialog: Ab full-screen popup nahi khulega, koi loading icon nahi phansega!
 
     try {
       print("--- Attempting Login ---");
       var user = await _auth.login(_emailController.text.trim(), _passwordController.text.trim());
-      
-      if (mounted) Navigator.pop(context); // Close loading spinner safely
 
       if (user != null) {
-        print("Login Successful!");
+        print("Login Successful! Transitioning routes...");
         if (mounted) {
-          // Removes Login screen stack sequence so AuthWrapper seamlessly hosts home streams
+          // Removes Login screen stack sequence cleanly
           Navigator.of(context).popUntil((route) => route.isFirst);
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Login Failed. Please verify your credentials."),
+              content: Text("Login Failed. Please verify your credentials or account status."),
               backgroundColor: Colors.redAccent,
             ),
           );
         }
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context); // Close loading spinner safely
       print("Login Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -81,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Smooth gray canvas base
+      backgroundColor: const Color(0xFFF8FAFC), 
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(28.0),
@@ -91,7 +83,6 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Clean Brand Identity Header
                 Center(
                   child: Container(
                     padding: const EdgeInsets.all(16),
@@ -154,7 +145,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: (value) => value == null || value.isEmpty ? "Please enter password" : null,
                 ),
                 
-                // --- FORGOT PASSWORD TEXT LINK PLACE ALIGNMENT ---
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -180,11 +170,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     elevation: 0,
                   ),
-                  child: const Text("Sign In", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: _isLoading 
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : const Text("Sign In", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 24),
                 
-                // --- FIXED ROUTING TRANSITION NAVIGATION LINK ---
                 Center(
                   child: TextButton(
                     onPressed: () {

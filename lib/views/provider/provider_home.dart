@@ -8,8 +8,11 @@ import 'package:eventeasee/views/profile/profile_screen.dart';
 import 'provider_analytics.dart';
 import 'package:eventeasee/services/notification_service.dart';
 import 'package:image_picker/image_picker.dart'; 
-import 'package:flutter/foundation.dart' show Uint8List; // 🚀 MEMORY CHUNKS ENGINE FOR PC & MOBILE WEBS
-import 'dart:convert'; // 🚀 BASE64 TRANSFORMATION SUPPORTED SAFELY
+import 'package:flutter/foundation.dart' show Uint8List; 
+import 'dart:convert'; 
+
+// 🚀 FIXED SYSTEM IMPORT: Connected directly to your full screen post preview drossier
+import 'package:eventeasee/views/provider/view_requirement_screen.dart';
 
 class ProviderHome extends StatefulWidget {
   const ProviderHome({super.key});
@@ -58,11 +61,12 @@ class _ProviderHomeState extends State<ProviderHome> {
     await FirebaseFirestore.instance.collection('bids').doc(bidId).delete();
     if (mounted) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Bid rescinded safely.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Bid rescinded safely."))
+      );
     }
   }
 
-  // 🚀 100% ERROR-FREE LOCAL MEMORY BASE64 CONVERSION DIALOG PIPELINE (BYPASSES STORAGE PRICING UPGRADES)
   void _uploadFakeReceiptDialog(BuildContext context, String eventId) {
     bool isUploading = false;
     
@@ -76,13 +80,16 @@ class _ProviderHomeState extends State<ProviderHome> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Transfer the 10% commission to our corporate hub and select the payment verification snapshot directly from your device media storage:", style: TextStyle(fontSize: 13, color: Colors.grey)),
+              const Text(
+                "Transfer the 10% commission to our corporate hub and select the payment verification snapshot directly from your device media storage:", 
+                style: TextStyle(fontSize: 13, color: Colors.grey)
+              ),
               const SizedBox(height: 20),
               if (isUploading)
                 const Column(
                   children: [
                     CircularProgressIndicator(color: Color(0xFF6366F1)),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Text("Processing snapshot payload matrix...", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
                   ],
                 )
@@ -99,32 +106,27 @@ class _ProviderHomeState extends State<ProviderHome> {
                   label: const Text("Open Storage ", style: TextStyle(fontWeight: FontWeight.bold)),
                   onPressed: () async {
                     final ImagePicker picker = ImagePicker();
-                    // imageQuality set at 20 locks dynamic textures tightly within light weight JSON lines safely
                     final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 20);
                     
                     if (image != null) {
                       setDialogState(() => isUploading = true);
                       try {
-                        // Synchronously stream picked asset bits straight into layout cache layers
                         Uint8List imageBinaryBytes = await image.readAsBytes();
-                        
-                        // Parse real chosen payment receipt photo into text stream blocks
                         String base64PayloadString = base64Encode(imageBinaryBytes);
                         String completeBase64URI = "data:image/jpeg;base64,$base64PayloadString";
 
-                        // Update unified Firestore references directly, completely skipping Storage plan freezes!
                         await FirebaseFirestore.instance.collection('events').doc(eventId).update({
                           'commissionStatus': 'submitted',
                           'commissionScreenshotUrl': completeBase64URI,
                           'updatedAt': FieldValue.serverTimestamp(),
                         });
 
-                        if (dialogContext.mounted) Navigator.pop(dialogContext);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Payment proof submitted succesfully! Wait for admin approval"), backgroundColor: Color(0xFF10B981))
-                          );
-                        }
+                        if (!mounted) return;
+                        Navigator.pop(dialogContext);
+                        
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Payment proof submitted succesfully! Wait for admin approval"), backgroundColor: Color(0xFF10B981))
+                        );
                       } catch (err) {
                         setDialogState(() => isUploading = false);
                         if (mounted) {
@@ -146,6 +148,105 @@ class _ProviderHomeState extends State<ProviderHome> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showBidManagementDialog(BuildContext context, String eventId, String eventTitle, QueryDocumentSnapshot bidDoc, String currentProviderId) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.gavel_rounded, color: Color(0xFF6366F1), size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      "Manage My Bid",
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Current Offer: Rs. ${double.tryParse(bidDoc['amount'].toString())?.toStringAsFixed(0) ?? '0'}",
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                  label: const Text("Chat Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1), 
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(44),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(dialogContext); 
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatScreen(
+                          eventId: eventId,
+                          providerId: currentProviderId,
+                          providerName: "Service Provider",
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.edit_note_rounded, size: 18),
+                  label: const Text("Edit Bid", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF6366F1),
+                    side: const BorderSide(color: Color(0xFF6366F1), width: 1.2),
+                    minimumSize: const Size.fromHeight(44),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PlaceBidScreen(
+                          eventId: eventId,
+                          eventTitle: eventTitle,
+                          bidId: bidDoc.id,
+                          existingAmount: bidDoc['amount'].toString(),
+                          existingMessage: bidDoc['message'],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                  label: const Text("Delete Bid", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    side: const BorderSide(color: Colors.redAccent, width: 1),
+                    minimumSize: const Size.fromHeight(44),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () => _deleteBid(dialogContext, bidDoc.id),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -194,6 +295,7 @@ class _ProviderHomeState extends State<ProviderHome> {
         ),
         body: TabBarView(
           children: [
+            // ================= TAB 1: LIVE MARKET FEED =================
             FutureBuilder<DocumentSnapshot>(
               future: FirebaseFirestore.instance.collection('users').doc(providerId).get(),
               builder: (context, providerSnapshot) {
@@ -284,26 +386,18 @@ class _ProviderHomeState extends State<ProviderHome> {
                                   title: Text(data['title'] ?? 'Untitled Event', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                   subtitle: Padding(padding: const EdgeInsets.only(top: 4.0), child: Text(data['description'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Colors.grey))),
                                   trailing: const Icon(Icons.chevron_right_rounded),
-                                  onTap: () async {
-                                    var existingBidQuery = await FirebaseFirestore.instance.collection('bids').where('eventId', isEqualTo: doc.id).where('providerId', isEqualTo: providerId).limit(1).get();
-                                    if (context.mounted) {
-                                      if (existingBidQuery.docs.isNotEmpty) {
-                                        var bidDoc = existingBidQuery.docs.first;
-                                        showDialog(
-                                          context: context,
-                                          builder: (dCtx) => AlertDialog(
-                                            title: const Text("Bid Configs"),
-                                            content: Text("Modify Rs. ${bidDoc['amount']} parameters?"),
-                                            actions: [
-                                              TextButton(onPressed: () => _deleteBid(dCtx, bidDoc.id), child: const Text("Retract", style: TextStyle(color: Colors.red))),
-                                              ElevatedButton(onPressed: () { Navigator.pop(dCtx); Navigator.push(context, MaterialPageRoute(builder: (c) => PlaceBidScreen(eventId: doc.id, eventTitle: data['title'], bidId: bidDoc.id, existingAmount: bidDoc['amount'].toString(), existingMessage: bidDoc['message']))); }, child: const Text("Modify"))
-                                            ],
-                                          ),
-                                        );
-                                      } else {
-                                        Navigator.push(context, MaterialPageRoute(builder: (c) => PlaceBidScreen(eventId: doc.id, eventTitle: data['title'])));
-                                      }
-                                    }
+                                  
+                                  // ================= 🚀 REDIRECT PIPELINE RESTUCTURE HOOK =================
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ViewRequirementScreen(
+                                          eventId: doc.id,
+                                          eventData: data,
+                                        ),
+                                      ),
+                                    );
                                   },
                                 ),
                               );
@@ -317,6 +411,7 @@ class _ProviderHomeState extends State<ProviderHome> {
               },
             ),
 
+            // ================= TAB 2: ACTIVE CONTRACTS ORDERS =================
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('events')
@@ -407,7 +502,6 @@ class _ProviderHomeState extends State<ProviderHome> {
                                   ],
                                 ),
                                 const SizedBox(height: 10),
-                                
                                 Row(
                                   children: [
                                     const Text("10% Fee System: ", style: TextStyle(fontSize: 12, color: Colors.grey)),
@@ -415,14 +509,13 @@ class _ProviderHomeState extends State<ProviderHome> {
                                       commStatus == 'verified' 
                                           ? "VERIFIED ✔" 
                                           : commStatus == 'submitted' 
-                                              ? "AWAITING ADMIN VERIFICATION ⏳" 
+                                              ? "Pending VERIFICATION ⏳" 
                                               : "UNPAID ❌",
                                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: commStatus == 'verified' ? Colors.green : commStatus == 'submitted' ? Colors.orange : Colors.red),
                                     )
                                   ],
                                 ),
                                 const Divider(height: 25),
-
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
@@ -432,14 +525,12 @@ class _ProviderHomeState extends State<ProviderHome> {
                                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 14)),
                                       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => ChatScreen(eventId: doc.id, providerId: providerId ?? '', providerName: "Client Portal"))),
                                     ),
-                                    
                                     if (commStatus == 'pending')
                                       TextButton.icon(
                                         icon: const Icon(Icons.upload_file_rounded),
                                         label: const Text("Share Screenshot"),
                                         onPressed: () => _uploadFakeReceiptDialog(context, doc.id),
                                       ),
-
                                     if (pStatus != 'completed')
                                       ElevatedButton.icon(
                                         icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
@@ -447,9 +538,8 @@ class _ProviderHomeState extends State<ProviderHome> {
                                         style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 14)),
                                         onPressed: () async {
                                           await FirebaseFirestore.instance.collection('events').doc(doc.id).update({'projectStatus': 'completed'});
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Project lifecycle marked as completed safely!"), backgroundColor: Colors.green));
-                                          }
+                                          if (!context.mounted) return;
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Project lifecycle marked as completed safely!"), backgroundColor: Colors.green));
                                         },
                                       )
                                   ],

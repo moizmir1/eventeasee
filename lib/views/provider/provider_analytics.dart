@@ -18,7 +18,7 @@ class _ProviderAnalyticsState extends State<ProviderAnalytics> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text("Business Intelligence Dashboard", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: const Text("Business Dashboard", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1E293B),
         elevation: 0,
@@ -95,7 +95,7 @@ class _ProviderAnalyticsState extends State<ProviderAnalytics> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("Financial Growth Curve", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1E293B))),
+                          const Text("Analytics", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1E293B))),
                           _buildTimeframeSelector(),
                         ],
                       ),

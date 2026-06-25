@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:eventeasee/services/notification_service.dart'; 
+import 'package:intl/intl.dart'; // 🚀 ADDED: Required for formatting selected DateTime layouts cleanly
 
 class PostEventScreen extends StatefulWidget {
   const PostEventScreen({super.key});
@@ -15,6 +16,7 @@ class _PostEventScreenState extends State<PostEventScreen> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   final _locController = TextEditingController();
+  final _dateController = TextEditingController(); // 🚀 ADDED: Controller to safely hold text representation of event date
 
   final List<String> _categories = [
     'Photography',
@@ -26,11 +28,42 @@ class _PostEventScreenState extends State<PostEventScreen> {
   ];
   
   String? _selectedCategory;
+  DateTime? _selectedDate; // 🚀 ADDED: Datetime state hook to manage background system operations
+
+  // 🚀 ACTION FUNCTION: Launches native picker matrices cleanly
+  Future<void> _selectEventDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 1)), // Default to tomorrow
+      firstDate: DateTime.now(), // Prevent booking past dates
+      lastDate: DateTime.now().add(const Duration(days: 365)), // Up to 1 year projection bounds
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF6366F1), // Custom primary picker accent mapping
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF1E293B),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        // Parse directly into human legible formatting string
+        _dateController.text = DateFormat('dd MMM yyyy').format(picked);
+      });
+    }
+  }
 
   void _submitEvent() async {
-    if (!_formKey.currentState!.validate() || _selectedCategory == null) {
+    if (!_formKey.currentState!.validate() || _selectedCategory == null || _selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all required fields and select a category")),
+        const SnackBar(content: Text("Please fill all fields, select a category and specify the event date.")),
       );
       return;
     }
@@ -52,14 +85,15 @@ class _PostEventScreenState extends State<PostEventScreen> {
           'description': _descController.text.trim(),
           'location': _locController.text.trim(),
           'category': _selectedCategory, 
+          'eventDate': _dateController.text, // 🚀 SAVED LAYER: Matches exact fields layout fetched by provider modules
           'status': 'open', 
-          'projectStatus': 'ongoing',       
+          'projectStatus': 'ongoing',      
           'commissionStatus': 'pending',    
           'commissionScreenshotUrl': '',    
           'createdAt': Timestamp.now(),     
         });
 
-        // 📢 --- REMOTE BROADCAST SYSTEM FOR TARGETED SERVICE VENDORS ---
+        // 📢 REMOTE BROADCAST SYSTEM FOR TARGETED SERVICE VENDORS
         try {
           var providersSnapshot = await FirebaseFirestore.instance
               .collection('users')
@@ -71,12 +105,11 @@ class _PostEventScreenState extends State<PostEventScreen> {
             List<dynamic> categories = providerData['categories'] ?? [];
             String? primaryCategory = providerData['category'];
 
-            // Match if provider shares this specific requested service category bounds
             if (categories.contains(_selectedCategory) || primaryCategory == _selectedCategory) {
               await FirebaseFirestore.instance.collection('notifications').add({
                 'targetUserId': pDoc.id, 
                 'title': "New Market Lead Live! 📢",
-                'body': "A new client requirement for '$_selectedCategory' was just posted in Abbottabad!",
+                'body': "A new client requirement for '$_selectedCategory' on ${_dateController.text} was posted!",
                 'createdAt': FieldValue.serverTimestamp(),
                 'isRead': false,
               });
@@ -84,7 +117,6 @@ class _PostEventScreenState extends State<PostEventScreen> {
           }
         } catch (_) {}
 
-        // Safe async check using mounted guard
         try {
           await NotificationService.triggerInstantAlert(
             id: 1, 
@@ -126,6 +158,7 @@ class _PostEventScreenState extends State<PostEventScreen> {
     _titleController.dispose();
     _descController.dispose();
     _locController.dispose();
+    _dateController.dispose(); // 🚀 DISPOSED: Clean memory buffers
     super.dispose();
   }
 
@@ -183,6 +216,21 @@ class _PostEventScreenState extends State<PostEventScreen> {
                   });
                 },
                 validator: (value) => value == null ? "Please assign a category" : null,
+              ),
+              const SizedBox(height: 20),
+
+              // ================= 🚀 NEW PIPELINE INTEGRATION: DYNAMIC DATE FIELD =================
+              TextFormField(
+                controller: _dateController,
+                readOnly: true, // Prevents keyboard typing overrides bugs
+                onTap: () => _selectEventDate(context),
+                decoration: const InputDecoration(
+                  labelText: "Event Target Date",
+                  hintText: "Select execution timeline date",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.calendar_today_rounded),
+                ),
+                validator: (value) => value == null || value.trim().isEmpty ? "Target execution timeline date is mandatory" : null,
               ),
               const SizedBox(height: 20),
 

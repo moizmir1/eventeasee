@@ -18,15 +18,19 @@ class _CreateTicketedEventState extends State<CreateTicketedEvent> {
   final seatsController = TextEditingController(); 
   final customFieldController = TextEditingController(); 
 
-  // 💎 FIXED: Stores Map objects with structural title and required flag parameters
   List<Map<String, dynamic>> userDefinedFields = []; 
-  bool _isFieldRequired = true; // Default state for new questions toggle
+  bool _isFieldRequired = true; 
+  String _screenshotRule = 'None'; 
+
+  // 🚀 NEW: Core Fields Toggle Switches
+  bool _requireNameField = true;
+  bool _requireEmailField = false;
+  bool _requirePhoneField = false;
 
   void _addCustomField() {
     String fieldTitle = customFieldController.text.trim();
     if (fieldTitle.isEmpty) return;
     
-    // Check duplication inside mapped objects array loop bounds
     bool exists = userDefinedFields.any((element) => element['title'].toString().toLowerCase() == fieldTitle.toLowerCase());
     if (exists) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("This question has already been added!")));
@@ -39,7 +43,7 @@ class _CreateTicketedEventState extends State<CreateTicketedEvent> {
         'isRequired': _isFieldRequired,
       });
       customFieldController.clear();
-      _isFieldRequired = true; // Reset back to default true baseline
+      _isFieldRequired = true; 
     });
   }
 
@@ -86,8 +90,13 @@ class _CreateTicketedEventState extends State<CreateTicketedEvent> {
         'description': descController.text.trim(),
         'maxSeats': allocatedSeats,
         'ticketsSold': 0, 
-        'customFields': userDefinedFields, // Directly pushes list of maps blueprints object straight to cloud storage
-        'shortId': shortId, 
+        'customFields': userDefinedFields, 
+        'screenshotRule': _screenshotRule, 
+        'shortId': shortId,
+        // 🚀 Saving Core Field Toggles to Firestore Pipeline
+        'requireName': _requireNameField,
+        'requireEmail': _requireEmailField,
+        'requirePhone': _requirePhoneField,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -181,7 +190,61 @@ class _CreateTicketedEventState extends State<CreateTicketedEvent> {
             TextField(controller: descController, maxLines: 2, decoration: const InputDecoration(labelText: "Event Details Description", border: OutlineInputBorder())),
             
             const SizedBox(height: 25),
-            const Text("Dynamic Form Builder (Attendee Questions)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+            const Text("Payment Verification Settings", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: _screenshotRule,
+              decoration: const InputDecoration(
+                labelText: "Payment Proof Screenshot Mode",
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.add_photo_alternate_outlined, color: Color(0xFF4F46E5)),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'None', child: Text('Not Required (Automatic Approval)')),
+                DropdownMenuItem(value: 'Optional', child: Text('Optional Upload (As per Customer choice)')),
+                DropdownMenuItem(value: 'Mandatory', child: Text('Mandatory (Block tickets until uploaded)')),
+              ],
+              onChanged: (val) {
+                setState(() {
+                  _screenshotRule = val ?? 'None';
+                });
+              },
+            ),
+
+            // ================= 🚀 NEW: SELECT REQUIRED ATTENDEE FIELDS =================
+            const SizedBox(height: 25),
+            const Text("Select Required Fields for Attendee", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE2E8F0))),
+              child: Column(
+                children: [
+                  CheckboxListTile(
+                    title: const Text("Full Name", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                    activeColor: const Color(0xFF4F46E5),
+                    value: _requireNameField,
+                    onChanged: (val) => setState(() => _requireNameField = val ?? true),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  CheckboxListTile(
+                    title: const Text("Email Address", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                    activeColor: const Color(0xFF4F46E5),
+                    value: _requireEmailField,
+                    onChanged: (val) => setState(() => _requireEmailField = val ?? false),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  CheckboxListTile(
+                    title: const Text("Mobile Phone Number", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                    activeColor: const Color(0xFF4F46E5),
+                    value: _requirePhoneField,
+                    onChanged: (val) => setState(() => _requirePhoneField = val ?? false),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 25),
+            const Text("Dynamic Form Builder (Extra Questions)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
             const SizedBox(height: 10),
             
             Row(
@@ -201,7 +264,6 @@ class _CreateTicketedEventState extends State<CreateTicketedEvent> {
               ],
             ),
             
-            // 💎 NEW ACTION BAR: Toggle validation requirements switch for query generation
             Row(
               children: [
                 Checkbox(
@@ -209,7 +271,7 @@ class _CreateTicketedEventState extends State<CreateTicketedEvent> {
                   activeColor: const Color(0xFF4F46E5),
                   onChanged: (val) => setState(() => _isFieldRequired = val ?? true)
                 ),
-                const Text("Mark this question as Mandatorily Required (*)", style: TextStyle(fontSize: 13, color: Color(0xFF334155), fontWeight: FontWeight.w500)),
+                const Text("Mark this custom question as Required (*)", style: TextStyle(fontSize: 13, color: Color(0xFF334155), fontWeight: FontWeight.w500)),
               ],
             ),
             
